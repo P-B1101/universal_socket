@@ -1,0 +1,21 @@
+name: universal_socket
+description: "A new Flutter package project."
+version: 0.0.1
+homepage: https://b1101-portfolio.web.app
+
+environment:
+  sdk: '>=3.4.1 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+
+flutter:
