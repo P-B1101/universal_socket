@@ -77,7 +77,9 @@ final class SocketHandler {
   final _bytes = List<int>.empty(growable: true);
   StreamSubscription? _sub;
   static const _dividerString = '||';
-  static const _tokenIdentifier = 'TOKEN:';
+  int _fileLength = 0;
+  String? _fileName;
+  bool _isFile = false;
   StreamController<double>? _progressController;
 
   Future<bool> connect(ConnectionConfig config) async {
@@ -133,73 +135,101 @@ final class SocketHandler {
     assert(_socket != null, 'call `connectWithSocket` first');
     final size = await file.length();
     if (size == 0) return;
+    final fileName = file.path.fileName;
+    sendMessage('${TCPCommand.sendFile}:${file.lengthSync()}:$fileName');
+    await Future.delayed(const Duration(seconds: 1));
     int temp = 0;
     _progressController = BehaviorSubject<double>();
-    _socket!
-        .addStream(file.openRead().map((data) {
+    _socket!.addStream(file.openRead().map((data) {
       temp += data.length;
       final progress = temp / size;
       if (_progressController != null && !_progressController!.isClosed) {
         _progressController!.add(progress);
       }
       return data;
-    }))
-        .then((_) async {
-      await Future.delayed(const Duration(seconds: 2));
-      _socket!.add(utf8.encode(
-        '$_dividerString${TCPCommand.eom.stringValue}$_dividerString',
-      ));
-    });
+    }));
     if (_progressController != null) yield* _progressController!.stream;
   }
 
   void _mapper(Uint8List bytes) {
     Logger.log('New packet received');
-    try {
-      _handleStringMessage(bytes);
-    } catch (error) {
-      // _handleFile(bytes);
-      _bytes.addAll(bytes);
-      Logger.log(error);
-    }
+    if (_handleBytes(bytes)) return;
+    final command = _compileIncommingMessage(bytes);
+    if (command == null) return;
+    if (_handleSendFileCommand(command)) return;
+    if (_handleSendAuthenticationCommand(command)) return;
+    if (_handleGeneralCommand(command)) return;
   }
 
-  void _handleStringMessage(Uint8List bytes) {
-    final data = utf8.decode(bytes);
-    Logger.log('Data received: $data');
-    if (data.contains(_tokenIdentifier)) {
-      final body = data.substring(2, data.length - 2);
-      final request = TCPRequest(
-        body: body,
-        command: TCPCommand.token,
-      );
+  bool _handleBytes(List<int> bytes) {
+    if (!_isFile) return false;
+    _bytes.addAll(bytes);
+    if (_bytes.length >= _fileLength) {
+      final request = TCPRequest.file(_bytes.toList(), _fileName);
+      _bytes.clear();
+      _fileLength = 0;
+      _isFile = false;
+      _fileName = null;
       onReceived(request);
-      return;
     }
-    if (!data.startsWith(_dividerString) || !data.endsWith(_dividerString)) {
-      throw Exception('Not A Command');
-    }
-    final body = data.substring(2, data.length - 2);
-    final TCPRequest request;
-    if (body == TCPCommand.eom.stringValue) {
-      request = TCPRequest(
-        body: _bytes.toList(),
-        command: TCPCommand.sendFile,
-      );
-      _handleEOM();
-    } else {
-      request = TCPRequest(
-        body: body,
-        command: TCPCommand.sendMessage,
-      );
-    }
-    onReceived(request);
+    return true;
   }
 
-  void _handleEOM() {
-    _bytes.clear();
-    _progressController?.close();
+  String? _compileIncommingMessage(List<int> bytes) {
+    try {
+      final data = utf8.decode(bytes);
+      if (!data.startsWith(_dividerString) || !data.endsWith(_dividerString)) {
+        Logger.log('Not A Command');
+        return null;
+      }
+      final result = data.substring(2, data.length - 2);
+      Logger.log('String Data received: $result');
+      return result;
+    } catch (error) {
+      Logger.log(error);
+      return null;
+    }
+  }
+
+  bool _handleSendFileCommand(String message) {
+    if (!message.startsWith(TCPCommand.sendFile.stringValue)) return false;
+    final temp = message.split(':');
+    if (temp.length < 2) {
+      Logger.log(
+          'Send File command config is not right. Invalid Messagin protocol');
+      return false;
+    }
+    final length = int.tryParse(temp[1]);
+    if (length == null) {
+      Logger.log('Send File command config is not right. Invalid file length');
+      return false;
+    }
+    _fileLength = length;
+    _isFile = true;
+    if (temp.length >= 3) _fileName = temp[2];
+    return true;
+  }
+
+  bool _handleSendAuthenticationCommand(String message) {
+    if (!message.startsWith('${TCPCommand.token.stringValue}:')) return false;
+    final request = TCPRequest.token(
+      message.substring(message.indexOf(':') + 1),
+    );
+    onReceived(request);
+    return true;
+  }
+
+  bool _handleGeneralCommand(String message) {
+    final request = TCPRequest.command(message);
+    onReceived(request);
+    return true;
   }
 
   bool get isConnected => _connected;
+}
+
+extension StringExt on String {
+  String get fileName => substring(lastIndexOf(Platform.pathSeparator));
+
+  String get fileExtension => substring(lastIndexOf('.'));
 }
