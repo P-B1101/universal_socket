@@ -29,20 +29,6 @@ base mixin _ComunicationOverSocket {
 
   void listenToSocket(Callback<TCPRequest> callback) => _callback = callback;
 
-  // Future<void> sendThroughSocket(
-  //   Object body, {
-  //   BodyType type = BodyType.string,
-  // }) async {
-  //   switch (type) {
-  //     case BodyType.file:
-  //       await _handler.sendFile(body as File);
-  //     case BodyType.string:
-  //       await _handler.sendMessage(body as String);
-  //     case BodyType.unknown:
-  //       throw UnimplementedError('body must be string or file');
-  //   }
-  // }
-
   Future<void> sendMessageThroughSocket(Object body) =>
       _handler.sendMessage(body as String);
 
@@ -136,7 +122,7 @@ final class SocketHandler {
     final size = await file.length();
     if (size == 0) return;
     final fileName = file.path.fileName;
-    sendMessage('${TCPCommand.sendFile}:${file.lengthSync()}:$fileName');
+    await sendMessage('${TCPCommand.sendFile}:${file.lengthSync()}:$fileName');
     await Future.delayed(const Duration(seconds: 1));
     int temp = 0;
     _progressController = BehaviorSubject<double>();
