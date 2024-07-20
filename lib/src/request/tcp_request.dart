@@ -17,12 +17,6 @@ class TCPRequest {
         fileName: null,
       );
 
-  factory TCPRequest.token(String token) => TCPRequest(
-        body: token,
-        command: TCPCommand.token,
-        fileName: null,
-      );
-
   factory TCPRequest.file(List<int> bytes, String? fileName) => TCPRequest(
         body: bytes,
         command: TCPCommand.sendFile,
@@ -33,7 +27,6 @@ class TCPRequest {
   String toString() {
     switch (command) {
       case TCPCommand.sendMessage:
-      case TCPCommand.token:
         return body.toString();
       case TCPCommand.sendFile:
       case TCPCommand.unknown:

@@ -143,8 +143,8 @@ final class SocketHandler {
     final command = _compileIncommingMessage(bytes);
     if (command == null) return;
     if (_handleSendFileCommand(command)) return;
-    if (_handleSendAuthenticationCommand(command)) return;
-    if (_handleGeneralCommand(command)) return;
+    // if (_handleSendAuthenticationCommand(command)) return;
+    if (_handleStringCommand(command)) return;
   }
 
   bool _handleBytes(List<int> bytes) {
@@ -196,16 +196,16 @@ final class SocketHandler {
     return true;
   }
 
-  bool _handleSendAuthenticationCommand(String message) {
-    if (!message.startsWith('${TCPCommand.token.stringValue}:')) return false;
-    final request = TCPRequest.token(
-      message.substring(message.indexOf(':') + 1),
-    );
-    onReceived(request);
-    return true;
-  }
+  // bool _handleSendAuthenticationCommand(String message) {
+  //   if (!message.startsWith('${TCPCommand.token.stringValue}:')) return false;
+  //   final request = TCPRequest.token(
+  //     message.substring(message.indexOf(':') + 1),
+  //   );
+  //   onReceived(request);
+  //   return true;
+  // }
 
-  bool _handleGeneralCommand(String message) {
+  bool _handleStringCommand(String message) {
     final request = TCPRequest.command(message);
     onReceived(request);
     return true;
