@@ -122,7 +122,7 @@ final class SocketHandler {
     final size = await file.length();
     if (size == 0) return;
     final fileName = file.path.fileName;
-    await sendMessage('${TCPCommand.sendFile}:$size:$fileName');
+    await sendMessage('${TCPCommand.sendFile.stringValue}:$size:$fileName');
     await Future.delayed(const Duration(seconds: 1));
     int temp = 0;
     _progressController = BehaviorSubject<double>();
