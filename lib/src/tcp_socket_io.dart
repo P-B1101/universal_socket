@@ -215,7 +215,7 @@ final class SocketHandler {
 }
 
 extension StringExt on String {
-  String get fileName => substring(lastIndexOf(Platform.pathSeparator));
+  String get fileName => substring(lastIndexOf(Platform.pathSeparator) + 1);
 
   String get fileExtension => substring(lastIndexOf('.'));
 }
