@@ -4,8 +4,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:rxdart/subjects.dart';
-import 'package:universal_socket/universal_socket.dart';
 
+import '../universal_socket.dart';
 import 'i_tcp_socket.dart';
 
 base mixin _ComunicationOverSocket {
@@ -34,6 +34,8 @@ base mixin _ComunicationOverSocket {
 
   Stream<double> uploadFileThroughSocket(File file) => _handler.sendFile(file);
 
+  Stream<bool> connectionStream();
+
   bool get isConnected => _handler.isConnected;
 }
 
@@ -52,6 +54,9 @@ final class TcpSocket with _ComunicationOverSocket implements IComunication {
   @override
   Stream<double> uploadFile(Object file) =>
       uploadFileThroughSocket(file as File);
+
+  @override
+  Stream<bool> connectionStream() => connectionStream();
 }
 
 final class SocketHandler {
@@ -68,6 +73,10 @@ final class SocketHandler {
   bool _isFile = false;
   StreamController<double>? _progressController;
 
+  final _connectionController = BehaviorSubject<bool>();
+
+  Stream<bool> connectionStream() => _connectionController.stream;
+
   Future<bool> connect(ConnectionConfig config) async {
     int k = 1;
     while (true) {
@@ -78,6 +87,7 @@ final class SocketHandler {
           timeout: Duration(milliseconds: config.timeout),
         );
         _connected = true;
+        _connectionController.add(true);
         Logger.log('$k attemps. Socket connected successfully');
         return true;
       } on Exception catch (error) {
@@ -101,6 +111,7 @@ final class SocketHandler {
       Logger.log(error);
     }
     _connected = false;
+    _connectionController.add(false);
     Logger.log('Socket disconnected.');
   }
 
