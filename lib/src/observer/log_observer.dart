@@ -14,7 +14,7 @@ final class LogObserver {
   final _controller = BehaviorSubject<String>();
   final StringBuffer _buffer = StringBuffer();
 
-  set oreText(String text) => preText = text;
+  set setPreText(String text) => preText = text;
 
   void add(String message) {
     _buffer.writeln('$preText$message');
