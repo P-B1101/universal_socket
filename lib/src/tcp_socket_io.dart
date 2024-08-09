@@ -118,7 +118,8 @@ final class SocketHandler {
   void listenToSocket() {
     assert(_connected, 'call `connectWithSocket` first');
     assert(_socket != null, 'call `connectWithSocket` first');
-    _sub = _socket!.listen(_mapper);
+    _sub = _socket!.listen(_mapper)
+      ..onDone(() => _connectionController.add(false));
   }
 
   Future<void> sendMessage(String message) async {
