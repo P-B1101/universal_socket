@@ -34,7 +34,7 @@ base mixin _ComunicationOverSocket {
 
   Stream<double> uploadFileThroughSocket(File file) => _handler.sendFile(file);
 
-  Stream<bool> connectionStream();
+  Stream<bool> socketConnectionStream() => _handler.connectionStream();
 
   bool get isConnected => _handler.isConnected;
 }
@@ -56,7 +56,7 @@ final class TcpSocket with _ComunicationOverSocket implements IComunication {
       uploadFileThroughSocket(file as File);
 
   @override
-  Stream<bool> connectionStream() => connectionStream();
+  Stream<bool> connectionStream() => socketConnectionStream();
 }
 
 final class SocketHandler {
