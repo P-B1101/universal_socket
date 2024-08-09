@@ -7,13 +7,17 @@ final class LogObserver {
 
   static final LogObserver _instance = LogObserver._();
 
+  static String preText = '';
+
   static LogObserver get instance => _instance;
 
   final _controller = BehaviorSubject<String>();
   final StringBuffer _buffer = StringBuffer();
 
+  set oreText(String text) => preText = text;
+
   void add(String message) {
-    _buffer.writeln(message);
+    _buffer.writeln('$preText$message');
     _controller.add(_buffer.toString());
   }
 
