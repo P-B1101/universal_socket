@@ -12,5 +12,7 @@ abstract interface class IComunication {
 
   Stream<double> uploadFile(Object file);
 
+  Stream<bool> connectionStream();
+
   void addListener(Callback<TCPRequest> callback);
 }

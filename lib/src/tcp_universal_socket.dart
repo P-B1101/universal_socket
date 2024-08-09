@@ -15,6 +15,8 @@ abstract interface class Comunication {
 
   Stream<double> uploadFile(Object file);
 
+  Stream<bool> connectionStream();
+
   void addListener(Callback<TCPRequest> callback);
 }
 
@@ -40,6 +42,9 @@ class UniversalSocket implements Comunication {
 
   @override
   Stream<double> uploadFile(Object body) => _socket.uploadFile(body);
+
+  @override
+  Stream<bool> connectionStream() => _socket.connectionStream();
 }
 
 class ConnectionConfig {

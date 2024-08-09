@@ -30,4 +30,10 @@ final class TcpSocket implements IComunication {
     Logger.log('not implemented in web');
     return const Stream<double>.empty();
   }
+
+  @override
+  Stream<bool> connectionStream() {
+    Logger.log('not implemented in web');
+    return const Stream<bool>.empty();
+  }
 }
