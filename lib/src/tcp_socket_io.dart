@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:rxdart/subjects.dart';
+import 'package:universal_socket/src/utils/constants.dart';
 
 import '../universal_socket.dart';
 import 'i_tcp_socket.dart';
@@ -29,8 +30,7 @@ base mixin _ComunicationOverSocket {
 
   void listenToSocket(Callback<TCPRequest> callback) => _callback = callback;
 
-  Future<void> sendMessageThroughSocket(Object body) =>
-      _handler.sendMessage(body as String);
+  Future<void> sendMessageThroughSocket(Object body) => _handler.sendMessage(body as String);
 
   Stream<double> uploadFileThroughSocket(File file) => _handler.sendFile(file);
 
@@ -52,8 +52,7 @@ final class TcpSocket with _ComunicationOverSocket implements IComunication {
   Future<void> sendMessage(String message) => sendMessageThroughSocket(message);
 
   @override
-  Stream<double> uploadFile(Object file) =>
-      uploadFileThroughSocket(file as File);
+  Stream<double> uploadFile(Object file) => uploadFileThroughSocket(file as File);
 
   @override
   Stream<bool> connectionStream() => socketConnectionStream();
@@ -66,6 +65,7 @@ final class SocketHandler {
   Socket? _socket;
   bool _connected = false;
   final _bytes = List<int>.empty(growable: true);
+  final _messages = List<int>.empty(growable: true);
   StreamSubscription? _sub;
   static const _dividerString = '||';
   int _fileLength = 0;
@@ -118,8 +118,7 @@ final class SocketHandler {
   void listenToSocket() {
     assert(_connected, 'call `connectWithSocket` first');
     assert(_socket != null, 'call `connectWithSocket` first');
-    _sub = _socket!.listen(_mapper)
-      ..onDone(() => _connectionController.add(false));
+    _sub = _socket!.listen(_mapper)..onDone(() => _connectionController.add(false));
   }
 
   Future<void> sendMessage(String message) async {
@@ -152,11 +151,13 @@ final class SocketHandler {
   void _mapper(Uint8List bytes) {
     Logger.log('New packet received');
     if (_handleBytes(bytes)) return;
-    final command = _compileIncommingMessage(bytes);
-    if (command == null) return;
-    if (_handleSendFileCommand(command)) return;
-    // if (_handleSendAuthenticationCommand(command)) return;
-    if (_handleStringCommand(command)) return;
+    final commands = _compileIncommingMessage(bytes);
+    if (commands == null) return;
+    for (var command in commands) {
+      if (_handleSendFileCommand(command)) continue;
+      // if (_handleSendAuthenticationCommand(command)) continue;
+      if (_handleStringCommand(command)) continue;
+    }
   }
 
   bool _handleBytes(List<int> bytes) {
@@ -173,15 +174,35 @@ final class SocketHandler {
     return true;
   }
 
-  String? _compileIncommingMessage(List<int> bytes) {
+  List<String>? _compileIncommingMessage(List<int> bytes) {
     try {
-      final data = utf8.decode(bytes);
-      if (!data.startsWith(_dividerString) || !data.endsWith(_dividerString)) {
+      _messages.addAll(bytes);
+      var data = utf8.decode(_messages.toList());
+      if (!data.endsWith(Constants.kEndOfMessage)) return null;
+      data = data.replaceRange(
+        data.length - Constants.kEndOfMessage.length,
+        data.length,
+        '',
+      );
+      _messages.clear();
+      if (!data.contains(_dividerString)) {
         Logger.log('Not A Command');
         return null;
       }
-      final result = data.substring(2, data.length - 2);
-      Logger.log('String Data received: $result');
+      final commands = data.split(_dividerString);
+      final result = List<String>.empty(growable: true);
+      // if (!data.startsWith(_dividerString) || !data.endsWith(_dividerString)) {
+      //   Logger.log('Not A Command');
+      //   return null;
+      // }
+      for (var command in commands) {
+        if (command.isEmpty) continue;
+        Logger.log('String Data received: $command');
+        result.add(command);
+      }
+      // final result = data.substring(2, data.length - 2);
+      Logger.log('Commands received: ${result.join(', ')}');
+
       return result;
     } catch (error) {
       Logger.log(error);
@@ -193,8 +214,7 @@ final class SocketHandler {
     if (!message.startsWith(TCPCommand.sendFile.stringValue)) return false;
     final temp = message.split(':');
     if (temp.length < 2) {
-      Logger.log(
-          'Send File command config is not right. Invalid Messagin protocol');
+      Logger.log('Send File command config is not right. Invalid Messagin protocol');
       return false;
     }
     final length = int.tryParse(temp[1]);
