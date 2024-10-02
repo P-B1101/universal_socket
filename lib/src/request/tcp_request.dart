@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:universal_socket/universal_socket.dart';
 
 class TCPRequest {
@@ -17,7 +19,7 @@ class TCPRequest {
         fileName: null,
       );
 
-  factory TCPRequest.file(List<int> bytes, String? fileName) => TCPRequest(
+  factory TCPRequest.file(Uint8List bytes, String? fileName) => TCPRequest(
         body: bytes,
         command: TCPCommand.sendFile,
         fileName: fileName,

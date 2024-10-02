@@ -158,11 +158,11 @@ final class SocketHandler {
     }
   }
 
-  bool _handleBytes(List<int> bytes) {
+  bool _handleBytes(Uint8List bytes) {
     if (!_isFile) return false;
     _bytes.addAll(bytes);
     if (_bytes.length >= _fileLength) {
-      final request = TCPRequest.file(_bytes.toList(), _fileName);
+      final request = TCPRequest.file(Uint8List.fromList(_bytes), _fileName);
       _bytes.clear();
       _fileLength = 0;
       _isFile = false;
@@ -172,7 +172,7 @@ final class SocketHandler {
     return true;
   }
 
-  List<String>? _compileIncommingMessage(List<int> bytes) {
+  List<String>? _compileIncommingMessage(Uint8List bytes) {
     try {
       _messages.addAll(bytes);
       var data = utf8.decode(_messages.toList());
