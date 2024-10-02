@@ -177,6 +177,7 @@ final class SocketHandler {
       _messages.addAll(bytes);
       var data = utf8.decode(_messages.toList());
       if (!data.endsWith(Constants.kEndOfMessage)) return null;
+      Logger.log('Command received size: ${_messages.length}');
       data = data.replaceRange(data.length - Constants.kEndOfMessage.length, data.length, '');
       final temp = data.split(Constants.kEndOfMessage);
       if (temp.isEmpty) return null;
