@@ -67,7 +67,6 @@ final class SocketHandler {
   final _bytes = List<int>.empty(growable: true);
   final _messages = List<int>.empty(growable: true);
   StreamSubscription? _sub;
-  static const _dividerString = '||';
   int _fileLength = 0;
   String? _fileName;
   bool _isFile = false;
@@ -124,7 +123,7 @@ final class SocketHandler {
   Future<void> sendMessage(String message) async {
     assert(_connected, 'call `connectWithSocket` first');
     assert(_socket != null, 'call `connectWithSocket` first');
-    _socket!.add(utf8.encode('$_dividerString$message$_dividerString'));
+    _socket!.add(utf8.encode('$message${Constants.kEndOfMessage}'));
   }
 
   Stream<double> sendFile(File file) async* {
@@ -149,15 +148,12 @@ final class SocketHandler {
   }
 
   void _mapper(Uint8List bytes) {
-    Logger.log('New packet received');
+    Logger.log('New packet received ${bytes.lengthInBytes} bytes');
     if (_handleBytes(bytes)) return;
-    final commands = _compileIncommingMessage(bytes);
-    if (commands == null) return;
-    for (var command in commands) {
-      if (_handleSendFileCommand(command)) continue;
-      // if (_handleSendAuthenticationCommand(command)) continue;
-      if (_handleStringCommand(command)) continue;
-    }
+    final command = _compileIncommingMessage(bytes);
+    if (command == null) return;
+    if (_handleSendFileCommand(command)) return;
+    if (_handleStringCommand(command)) return;
   }
 
   bool _handleBytes(List<int> bytes) {
@@ -174,36 +170,15 @@ final class SocketHandler {
     return true;
   }
 
-  List<String>? _compileIncommingMessage(List<int> bytes) {
+  String? _compileIncommingMessage(List<int> bytes) {
     try {
       _messages.addAll(bytes);
       var data = utf8.decode(_messages.toList());
       if (!data.endsWith(Constants.kEndOfMessage)) return null;
-      data = data.replaceRange(
-        data.length - Constants.kEndOfMessage.length,
-        data.length,
-        '',
-      );
+      data = data.replaceRange(data.length - Constants.kEndOfMessage.length, data.length, '');
       _messages.clear();
-      if (!data.contains(_dividerString)) {
-        Logger.log('Not A Command');
-        return null;
-      }
-      final commands = data.split(_dividerString);
-      final result = List<String>.empty(growable: true);
-      // if (!data.startsWith(_dividerString) || !data.endsWith(_dividerString)) {
-      //   Logger.log('Not A Command');
-      //   return null;
-      // }
-      for (var command in commands) {
-        if (command.isEmpty) continue;
-        Logger.log('String Data received: $command');
-        result.add(command);
-      }
-      // final result = data.substring(2, data.length - 2);
-      Logger.log('Commands received: ${result.join(', ')}');
-
-      return result;
+      Logger.log('Commands received: $data');
+      return data;
     } catch (error) {
       Logger.log(error);
       return null;
@@ -227,15 +202,6 @@ final class SocketHandler {
     if (temp.length >= 3) _fileName = temp[2];
     return true;
   }
-
-  // bool _handleSendAuthenticationCommand(String message) {
-  //   if (!message.startsWith('${TCPCommand.token.stringValue}:')) return false;
-  //   final request = TCPRequest.token(
-  //     message.substring(message.indexOf(':') + 1),
-  //   );
-  //   onReceived(request);
-  //   return true;
-  // }
 
   bool _handleStringCommand(String message) {
     final request = TCPRequest.command(message);
